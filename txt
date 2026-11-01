@@ -1,0 +1,1954 @@
+1.
+
+import re
+import nltk
+from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer, WordNetLemmatizer
+
+# Download required data
+nltk.download('punkt')
+nltk.download('punkt_tab')
+nltk.download('stopwords')
+nltk.download('wordnet')
+
+# Input text
+text = input("Enter the text: ")
+
+# 1. Regular Expression
+print("\n1. Regular Expression")
+print("Words:", re.findall(r'\b[A-Za-z]+\b', text))
+print("Numbers:", re.findall(r'\b\d+\b', text))
+print("Emails:", re.findall(r'\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b', text))
+
+# 2. Sentence Tokenization
+print("\n2. Sentence Tokenization")
+print(sent_tokenize(text))
+
+# 3. Word Tokenization
+words = word_tokenize(text)
+print("\n3. Word Tokenization")
+print(words)
+
+# 4. POS Tagging
+print("\n4. POS Tagging")
+print(nltk.pos_tag([w for w in words if w.isalpha()]))
+
+# 5. Stop Word Removal
+stop_words = set(stopwords.words('english'))
+filtered = [w for w in words
+            if w.isalpha() and w.lower() not in stop_words]
+print("\n5. Stop Word Removal")
+print(filtered)
+
+# 6. Stemming
+stemmer = PorterStemmer()
+stemmed = [stemmer.stem(w) for w in filtered]
+print("\n6. Stemming")
+print(stemmed)
+
+# 7. Lemmatization
+lemmatizer = WordNetLemmatizer()
+lemmatized = [lemmatizer.lemmatize(w) for w in filtered]
+print("\n7. Lemmatization")
+print(lemmatized)
+
+print("\nText preprocessing completed successfully!")
+
+
+
+
+
+
+
+3.
+
+from collections import Counter
+import math
+
+sentences = ["I love Python", "I love programming", "Python is easy"]
+
+# 1. PREPROCESS: Build global lists for the entire corpus
+all_words = []
+all_bigrams = []
+all_trigrams = []
+
+for sentence in sentences:
+    tokens = sentence.lower().split()
+    all_words.extend(tokens)
+
+    # Generate Bigrams
+    for i in range(len(tokens) - 1):
+        all_bigrams.append((tokens[i], tokens[i + 1]))
+
+    # Generate Trigrams
+    for i in range(len(tokens) - 2):
+        all_trigrams.append((tokens[i], tokens[i + 1], tokens[i + 2]))
+
+# Create global count dictionaries
+unigram_counts = Counter(all_words)
+bigram_counts = Counter(all_bigrams)
+trigram_counts = Counter(all_trigrams)
+
+total_words = len(all_words)
+
+# ==========================================
+# 2. UNIGRAM PROBABILITIES
+# ==========================================
+print("UNIGRAM PROBABILITIES")
+for word in unigram_counts:
+    p = unigram_counts[word] / total_words
+    print(f"{word} = {round(p, 3)}")
+
+# ==========================================
+# 3. BIGRAM PROBABILITIES
+# ==========================================
+print("\nBIGRAM PROBABILITIES")
+for bigram in bigram_counts:
+    w1, w2 = bigram
+    # P(w2 | w1) = Count(w1, w2) / Count(w1)
+    p = bigram_counts[bigram] / unigram_counts[w1]
+    print(f"{w1} {w2} = {round(p, 3)}")
+
+# ==========================================
+# 4. TRIGRAM PROBABILITIES
+# ==========================================
+print("\nTRIGRAM PROBABILITIES")
+for trigram in trigram_counts:
+    w1, w2, w3 = trigram
+    # P(w3 | w1, w2) = Count(w1, w2, w3) / Count(w1, w2)
+    p = trigram_counts[trigram] / bigram_counts[(w1, w2)]
+    print(f"{w1} {w2} {w3} = {round(p, 3)}")
+
+# ==========================================
+# 5. PERPLEXITY CALCULATION (Example Sentence)
+# ==========================================
+print("\nPERPLEXITY")
+
+# Let's find bigram perplexity for: "I love Python"
+test_sentence = "I love Python".lower().split()
+
+# Extract bigram pairs to evaluate: [('i', 'love'), ('love', 'python')]
+test_bigrams = [
+    (test_sentence[i], test_sentence[i + 1])
+    for i in range(len(test_sentence) - 1)
+]
+
+# Multiply probabilities of the bigrams found in our dataset
+product = 1.0
+for bg in test_bigrams:
+    w1, w2 = bg
+    p = bigram_counts[bg] / unigram_counts[w1]
+    product *= p
+
+# N is the number of tokens evaluated
+N = len(test_sentence)
+perplexity = product ** (-1 / N)
+
+print("Sentence: 'I love Python'")
+print("Perplexity =", round(perplexity, 3))
+
+
+
+
+
+
+
+4.
+import numpy as np
+from gensim.models import Word2Vec
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+
+
+# ------------------------------------------------------------
+# 2. TEXT CORPUS
+# ------------------------------------------------------------
+
+corpus = [
+    ["the", "cat", "drinks", "milk"],
+    ["the", "dog", "drinks", "milk"],
+    ["the", "cat", "eats", "fish"],
+    ["the", "dog", "eats", "meat"],
+
+    ["the", "king", "rules", "the", "kingdom"],
+    ["the", "queen", "rules", "the", "kingdom"],
+    ["the", "king", "is", "a", "man"],
+    ["the", "queen", "is", "a", "woman"],
+
+    ["the", "car", "drives", "on", "the", "road"],
+    ["the", "bus", "drives", "on", "the", "road"],
+
+    ["the", "apple", "is", "a", "fruit"],
+    ["the", "orange", "is", "a", "fruit"],
+    ["the", "apple", "is", "red"],
+    ["the", "orange", "is", "orange"],
+
+    ["the", "doctor", "works", "in", "the", "hospital"],
+    ["the", "nurse", "works", "in", "the", "hospital"],
+
+    ["the", "teacher", "works", "in", "the", "school"],
+    ["the", "student", "studies", "in", "the", "school"],
+
+    ["the", "boy", "plays", "football"],
+    ["the", "girl", "plays", "football"],
+    ["the", "boy", "plays", "cricket"],
+    ["the", "girl", "plays", "cricket"]
+]
+
+
+# ------------------------------------------------------------
+# 3. TRAIN CBOW MODEL
+# ------------------------------------------------------------
+
+cbow_model = Word2Vec(
+    sentences=corpus,
+    vector_size=100,
+    window=2,
+    min_count=1,
+    workers=1,
+    sg=0,
+    seed=42,
+    epochs=100
+)
+
+# sg=0 means CBOW
+
+
+# ------------------------------------------------------------
+# 4. TRAIN SKIP-GRAM MODEL
+# ------------------------------------------------------------
+
+skipgram_model = Word2Vec(
+    sentences=corpus,
+    vector_size=100,
+    window=2,
+    min_count=1,
+    workers=1,
+    sg=1,
+    seed=42,
+    epochs=100
+)
+
+# sg=1 means Skip-gram
+
+
+# ------------------------------------------------------------
+# 5. DISPLAY MODEL INFORMATION
+# ------------------------------------------------------------
+
+print("=" * 70)
+print("CBOW AND SKIP-GRAM WORD2VEC")
+print("=" * 70)
+
+print("\nVocabulary size:",
+      len(cbow_model.wv.key_to_index))
+
+print("\nVocabulary:")
+print(list(cbow_model.wv.key_to_index.keys()))
+
+
+# ------------------------------------------------------------
+# 6. FIND SIMILAR WORDS - CBOW
+# ------------------------------------------------------------
+
+word = "cat"
+
+print("\n" + "=" * 70)
+print("CBOW - SIMILAR WORDS")
+print("=" * 70)
+
+print(f"\nWords similar to '{word}':")
+
+cbow_similar = cbow_model.wv.most_similar(
+    word,
+    topn=5
+)
+
+for similar_word, score in cbow_similar:
+    print(
+        f"{similar_word:15s} "
+        f"Similarity = {score:.4f}"
+    )
+
+
+# ------------------------------------------------------------
+# 7. FIND SIMILAR WORDS - SKIP-GRAM
+# ------------------------------------------------------------
+
+print("\n" + "=" * 70)
+print("SKIP-GRAM - SIMILAR WORDS")
+print("=" * 70)
+
+print(f"\nWords similar to '{word}':")
+
+skipgram_similar = skipgram_model.wv.most_similar(
+    word,
+    topn=5
+)
+
+for similar_word, score in skipgram_similar:
+    print(
+        f"{similar_word:15s} "
+        f"Similarity = {score:.4f}"
+    )
+
+
+# ------------------------------------------------------------
+# 8. SEMANTIC SIMILARITY BETWEEN WORDS
+# ------------------------------------------------------------
+
+print("\n" + "=" * 70)
+print("SEMANTIC WORD RELATIONSHIPS")
+print("=" * 70)
+
+word_pairs = [
+    ("cat", "dog"),
+    ("king", "queen"),
+    ("car", "bus"),
+    ("apple", "orange"),
+    ("doctor", "nurse"),
+    ("teacher", "student"),
+    ("boy", "girl")
+]
+
+for word1, word2 in word_pairs:
+
+    cbow_score = cbow_model.wv.similarity(
+        word1,
+        word2
+    )
+
+    skipgram_score = skipgram_model.wv.similarity(
+        word1,
+        word2
+    )
+
+    print(f"\n{word1} <-> {word2}")
+
+    print(
+        f"CBOW      : {cbow_score:.4f}"
+    )
+
+    print(
+        f"Skip-gram : {skipgram_score:.4f}"
+    )
+
+
+# ------------------------------------------------------------
+# 9. DISPLAY A WORD VECTOR
+# ------------------------------------------------------------
+
+print("\n" + "=" * 70)
+print("WORD EMBEDDING")
+print("=" * 70)
+
+word = "cat"
+
+print(f"\n100-dimensional vector for '{word}':")
+
+print(cbow_model.wv[word])
+
+
+# ------------------------------------------------------------
+# 10. WORDS FOR VISUALIZATION
+# ------------------------------------------------------------
+
+words = [
+    "cat",
+    "dog",
+    "milk",
+    "fish",
+    "meat",
+    "king",
+    "queen",
+    "man",
+    "woman",
+    "car",
+    "bus",
+    "road",
+    "apple",
+    "orange",
+    "fruit",
+    "doctor",
+    "nurse",
+    "teacher",
+    "student",
+    "school",
+    "hospital",
+    "boy",
+    "girl",
+    "football",
+    "cricket"
+]
+
+
+# ------------------------------------------------------------
+# 11. GET CBOW VECTORS
+# ------------------------------------------------------------
+
+cbow_vectors = []
+valid_words = []
+
+for word in words:
+
+    if word in cbow_model.wv:
+
+        cbow_vectors.append(
+            cbow_model.wv[word]
+        )
+
+        valid_words.append(word)
+
+
+# ------------------------------------------------------------
+# 12. PCA FOR CBOW
+# ------------------------------------------------------------
+
+pca = PCA(
+    n_components=2
+)
+
+cbow_pca = pca.fit_transform(
+    cbow_vectors
+)
+
+
+# ------------------------------------------------------------
+# 13. CBOW PCA VISUALIZATION
+# ------------------------------------------------------------
+
+plt.figure(
+    figsize=(13, 9)
+)
+
+for i, word in enumerate(valid_words):
+
+    x = cbow_pca[i, 0]
+    y = cbow_pca[i, 1]
+
+    plt.scatter(
+        x,
+        y,
+        s=80
+    )
+
+    plt.annotate(
+        word,
+        (x, y),
+        xytext=(5, 5),
+        textcoords="offset points",
+        fontsize=10
+    )
+
+plt.title(
+    "CBOW Word Embeddings - PCA",
+    fontsize=16
+)
+
+plt.xlabel(
+    "Principal Component 1"
+)
+
+plt.ylabel(
+    "Principal Component 2"
+)
+
+plt.grid(alpha=0.3)
+
+plt.tight_layout()
+
+plt.show()
+
+
+# ------------------------------------------------------------
+# 14. t-SNE FOR CBOW
+# ------------------------------------------------------------
+
+tsne = TSNE(
+    n_components=2,
+    perplexity=5,
+    random_state=42,
+    init="random",
+    learning_rate="auto"
+)
+
+cbow_tsne = tsne.fit_transform(
+    np.array(cbow_vectors)
+)
+
+
+# ------------------------------------------------------------
+# 15. CBOW t-SNE VISUALIZATION
+# ------------------------------------------------------------
+
+plt.figure(
+    figsize=(13, 9)
+)
+
+for i, word in enumerate(valid_words):
+
+    x = cbow_tsne[i, 0]
+    y = cbow_tsne[i, 1]
+
+    plt.scatter(
+        x,
+        y,
+        s=80
+    )
+
+    plt.annotate(
+        word,
+        (x, y),
+        xytext=(5, 5),
+        textcoords="offset points",
+        fontsize=10
+    )
+
+plt.title(
+    "CBOW Word Embeddings - t-SNE",
+    fontsize=16
+)
+
+plt.xlabel(
+    "t-SNE Dimension 1"
+)
+
+plt.ylabel(
+    "t-SNE Dimension 2"
+)
+
+plt.grid(alpha=0.3)
+
+plt.tight_layout()
+
+plt.show()
+
+
+# ------------------------------------------------------------
+# 16. SKIP-GRAM VECTORS
+# ------------------------------------------------------------
+
+skipgram_vectors = []
+
+for word in valid_words:
+
+    skipgram_vectors.append(
+        skipgram_model.wv[word]
+    )
+
+
+# ------------------------------------------------------------
+# 17. PCA FOR SKIP-GRAM
+# ------------------------------------------------------------
+
+skipgram_pca = PCA(
+    n_components=2
+)
+
+skipgram_pca_vectors = skipgram_pca.fit_transform(
+    skipgram_vectors
+)
+
+
+# ------------------------------------------------------------
+# 18. SKIP-GRAM PCA VISUALIZATION
+# ------------------------------------------------------------
+
+plt.figure(
+    figsize=(13, 9)
+)
+
+for i, word in enumerate(valid_words):
+
+    x = skipgram_pca_vectors[i, 0]
+    y = skipgram_pca_vectors[i, 1]
+
+    plt.scatter(
+        x,
+        y,
+        s=80
+    )
+
+    plt.annotate(
+        word,
+        (x, y),
+        xytext=(5, 5),
+        textcoords="offset points",
+        fontsize=10
+    )
+
+plt.title(
+    "Skip-Gram Word Embeddings - PCA",
+    fontsize=16
+)
+
+plt.xlabel(
+    "Principal Component 1"
+)
+
+plt.ylabel(
+    "Principal Component 2"
+)
+
+plt.grid(alpha=0.3)
+
+plt.tight_layout()
+
+plt.show()
+
+
+# ------------------------------------------------------------
+# 19. t-SNE FOR SKIP-GRAM
+# ------------------------------------------------------------
+
+skipgram_tsne_model = TSNE(
+    n_components=2,
+    perplexity=5,
+    random_state=42,
+    init="random",
+    learning_rate="auto"
+)
+
+skipgram_tsne = skipgram_tsne_model.fit_transform(
+    np.array(skipgram_vectors)
+)
+
+
+# ------------------------------------------------------------
+# 20. SKIP-GRAM t-SNE VISUALIZATION
+# ------------------------------------------------------------
+
+plt.figure(
+    figsize=(13, 9)
+)
+
+for i, word in enumerate(valid_words):
+
+    x = skipgram_tsne[i, 0]
+    y = skipgram_tsne[i, 1]
+
+    plt.scatter(
+        x,
+        y,
+        s=80
+    )
+
+    plt.annotate(
+        word,
+        (x, y),
+        xytext=(5, 5),
+        textcoords="offset points",
+        fontsize=10
+    )
+
+plt.title(
+    "Skip-Gram Word Embeddings - t-SNE",
+    fontsize=16
+)
+
+plt.xlabel(
+    "t-SNE Dimension 1"
+)
+
+plt.ylabel(
+    "t-SNE Dimension 2"
+)
+
+plt.grid(alpha=0.3)
+
+plt.tight_layout()
+
+plt.show()
+
+
+# ------------------------------------------------------------
+# 21. FINAL OUTPUT
+# ------------------------------------------------------------
+
+print("\n" + "=" * 70)
+print("ANALYSIS COMPLETED")
+print("=" * 70)
+
+print("""
+CBOW:
+    Context words -> Target word
+
+Skip-Gram:
+    Target word -> Context words
+
+The program performed:
+
+1. Word2Vec training using CBOW
+2. Word2Vec training using Skip-Gram
+3. Similar word identification
+4. Semantic similarity calculation
+5. Word embedding generation
+6. PCA dimensionality reduction
+7. t-SNE dimensionality reduction
+8. CBOW visualization
+9. Skip-Gram visualization
+""")
+
+
+
+
+
+5.
+
+import numpy as np
+from gensim.models import Word2Vec
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+
+
+# ------------------------------------------------------------
+# 2. TEXT CORPUS
+# ------------------------------------------------------------
+
+corpus = [
+    ["the", "cat", "drinks", "milk"],
+    ["the", "dog", "drinks", "milk"],
+    ["the", "cat", "eats", "fish"],
+    ["the", "dog", "eats", "meat"],
+
+    ["the", "king", "rules", "the", "kingdom"],
+    ["the", "queen", "rules", "the", "kingdom"],
+    ["the", "king", "is", "a", "man"],
+    ["the", "queen", "is", "a", "woman"],
+
+    ["the", "car", "drives", "on", "the", "road"],
+    ["the", "bus", "drives", "on", "the", "road"],
+
+    ["the", "apple", "is", "a", "fruit"],
+    ["the", "orange", "is", "a", "fruit"],
+    ["the", "apple", "is", "red"],
+    ["the", "orange", "is", "orange"],
+
+    ["the", "doctor", "works", "in", "the", "hospital"],
+    ["the", "nurse", "works", "in", "the", "hospital"],
+
+    ["the", "teacher", "works", "in", "the", "school"],
+    ["the", "student", "studies", "in", "the", "school"],
+
+    ["the", "boy", "plays", "football"],
+    ["the", "girl", "plays", "football"],
+    ["the", "boy", "plays", "cricket"],
+    ["the", "girl", "plays", "cricket"]
+]
+
+
+# ------------------------------------------------------------
+# 3. TRAIN CBOW MODEL
+# ------------------------------------------------------------
+
+cbow_model = Word2Vec(
+    sentences=corpus,
+    vector_size=100,
+    window=2,
+    min_count=1,
+    workers=1,
+    sg=0,
+    seed=42,
+    epochs=100
+)
+
+# sg=0 means CBOW
+
+
+# ------------------------------------------------------------
+# 4. TRAIN SKIP-GRAM MODEL
+# ------------------------------------------------------------
+
+skipgram_model = Word2Vec(
+    sentences=corpus,
+    vector_size=100,
+    window=2,
+    min_count=1,
+    workers=1,
+    sg=1,
+    seed=42,
+    epochs=100
+)
+
+# sg=1 means Skip-gram
+
+
+# ------------------------------------------------------------
+# 5. DISPLAY MODEL INFORMATION
+# ------------------------------------------------------------
+
+print("=" * 70)
+print("CBOW AND SKIP-GRAM WORD2VEC")
+print("=" * 70)
+
+print("\nVocabulary size:",
+      len(cbow_model.wv.key_to_index))
+
+print("\nVocabulary:")
+print(list(cbow_model.wv.key_to_index.keys()))
+
+
+# ------------------------------------------------------------
+# 6. FIND SIMILAR WORDS - CBOW
+# ------------------------------------------------------------
+
+word = "cat"
+
+print("\n" + "=" * 70)
+print("CBOW - SIMILAR WORDS")
+print("=" * 70)
+
+print(f"\nWords similar to '{word}':")
+
+cbow_similar = cbow_model.wv.most_similar(
+    word,
+    topn=5
+)
+
+for similar_word, score in cbow_similar:
+    print(
+        f"{similar_word:15s} "
+        f"Similarity = {score:.4f}"
+    )
+
+
+# ------------------------------------------------------------
+# 7. FIND SIMILAR WORDS - SKIP-GRAM
+# ------------------------------------------------------------
+
+print("\n" + "=" * 70)
+print("SKIP-GRAM - SIMILAR WORDS")
+print("=" * 70)
+
+print(f"\nWords similar to '{word}':")
+
+skipgram_similar = skipgram_model.wv.most_similar(
+    word,
+    topn=5
+)
+
+for similar_word, score in skipgram_similar:
+    print(
+        f"{similar_word:15s} "
+        f"Similarity = {score:.4f}"
+    )
+
+
+# ------------------------------------------------------------
+# 8. SEMANTIC SIMILARITY BETWEEN WORDS
+# ------------------------------------------------------------
+
+print("\n" + "=" * 70)
+print("SEMANTIC WORD RELATIONSHIPS")
+print("=" * 70)
+
+word_pairs = [
+    ("cat", "dog"),
+    ("king", "queen"),
+    ("car", "bus"),
+    ("apple", "orange"),
+    ("doctor", "nurse"),
+    ("teacher", "student"),
+    ("boy", "girl")
+]
+
+for word1, word2 in word_pairs:
+
+    cbow_score = cbow_model.wv.similarity(
+        word1,
+        word2
+    )
+
+    skipgram_score = skipgram_model.wv.similarity(
+        word1,
+        word2
+    )
+
+    print(f"\n{word1} <-> {word2}")
+
+    print(
+        f"CBOW      : {cbow_score:.4f}"
+    )
+
+    print(
+        f"Skip-gram : {skipgram_score:.4f}"
+    )
+
+
+# ------------------------------------------------------------
+# 9. DISPLAY A WORD VECTOR
+# ------------------------------------------------------------
+
+print("\n" + "=" * 70)
+print("WORD EMBEDDING")
+print("=" * 70)
+
+word = "cat"
+
+print(f"\n100-dimensional vector for '{word}':")
+
+print(cbow_model.wv[word])
+
+
+# ------------------------------------------------------------
+# 10. WORDS FOR VISUALIZATION
+# ------------------------------------------------------------
+
+words = [
+    "cat",
+    "dog",
+    "milk",
+    "fish",
+    "meat",
+    "king",
+    "queen",
+    "man",
+    "woman",
+    "car",
+    "bus",
+    "road",
+    "apple",
+    "orange",
+    "fruit",
+    "doctor",
+    "nurse",
+    "teacher",
+    "student",
+    "school",
+    "hospital",
+    "boy",
+    "girl",
+    "football",
+    "cricket"
+]
+
+
+# ------------------------------------------------------------
+# 11. GET CBOW VECTORS
+# ------------------------------------------------------------
+
+cbow_vectors = []
+valid_words = []
+
+for word in words:
+
+    if word in cbow_model.wv:
+
+        cbow_vectors.append(
+            cbow_model.wv[word]
+        )
+
+        valid_words.append(word)
+
+
+# ------------------------------------------------------------
+# 12. PCA FOR CBOW
+# ------------------------------------------------------------
+
+pca = PCA(
+    n_components=2
+)
+
+cbow_pca = pca.fit_transform(
+    cbow_vectors
+)
+
+
+# ------------------------------------------------------------
+# 13. CBOW PCA VISUALIZATION
+# ------------------------------------------------------------
+
+plt.figure(
+    figsize=(13, 9)
+)
+
+for i, word in enumerate(valid_words):
+
+    x = cbow_pca[i, 0]
+    y = cbow_pca[i, 1]
+
+    plt.scatter(
+        x,
+        y,
+        s=80
+    )
+
+    plt.annotate(
+        word,
+        (x, y),
+        xytext=(5, 5),
+        textcoords="offset points",
+        fontsize=10
+    )
+
+plt.title(
+    "CBOW Word Embeddings - PCA",
+    fontsize=16
+)
+
+plt.xlabel(
+    "Principal Component 1"
+)
+
+plt.ylabel(
+    "Principal Component 2"
+)
+
+plt.grid(alpha=0.3)
+
+plt.tight_layout()
+
+plt.show()
+
+
+# ------------------------------------------------------------
+# 14. t-SNE FOR CBOW
+# ------------------------------------------------------------
+
+tsne = TSNE(
+    n_components=2,
+    perplexity=5,
+    random_state=42,
+    init="random",
+    learning_rate="auto"
+)
+
+cbow_tsne = tsne.fit_transform(
+    np.array(cbow_vectors)
+)
+
+
+# ------------------------------------------------------------
+# 15. CBOW t-SNE VISUALIZATION
+# ------------------------------------------------------------
+
+plt.figure(
+    figsize=(13, 9)
+)
+
+for i, word in enumerate(valid_words):
+
+    x = cbow_tsne[i, 0]
+    y = cbow_tsne[i, 1]
+
+    plt.scatter(
+        x,
+        y,
+        s=80
+    )
+
+    plt.annotate(
+        word,
+        (x, y),
+        xytext=(5, 5),
+        textcoords="offset points",
+        fontsize=10
+    )
+
+plt.title(
+    "CBOW Word Embeddings - t-SNE",
+    fontsize=16
+)
+
+plt.xlabel(
+    "t-SNE Dimension 1"
+)
+
+plt.ylabel(
+    "t-SNE Dimension 2"
+)
+
+plt.grid(alpha=0.3)
+
+plt.tight_layout()
+
+plt.show()
+
+
+# ------------------------------------------------------------
+# 16. SKIP-GRAM VECTORS
+# ------------------------------------------------------------
+
+skipgram_vectors = []
+
+for word in valid_words:
+
+    skipgram_vectors.append(
+        skipgram_model.wv[word]
+    )
+
+
+# ------------------------------------------------------------
+# 17. PCA FOR SKIP-GRAM
+# ------------------------------------------------------------
+
+skipgram_pca = PCA(
+    n_components=2
+)
+
+skipgram_pca_vectors = skipgram_pca.fit_transform(
+    skipgram_vectors
+)
+
+
+# ------------------------------------------------------------
+# 18. SKIP-GRAM PCA VISUALIZATION
+# ------------------------------------------------------------
+
+plt.figure(
+    figsize=(13, 9)
+)
+
+for i, word in enumerate(valid_words):
+
+    x = skipgram_pca_vectors[i, 0]
+    y = skipgram_pca_vectors[i, 1]
+
+    plt.scatter(
+        x,
+        y,
+        s=80
+    )
+
+    plt.annotate(
+        word,
+        (x, y),
+        xytext=(5, 5),
+        textcoords="offset points",
+        fontsize=10
+    )
+
+plt.title(
+    "Skip-Gram Word Embeddings - PCA",
+    fontsize=16
+)
+
+plt.xlabel(
+    "Principal Component 1"
+)
+
+plt.ylabel(
+    "Principal Component 2"
+)
+
+plt.grid(alpha=0.3)
+
+plt.tight_layout()
+
+plt.show()
+
+
+# ------------------------------------------------------------
+# 19. t-SNE FOR SKIP-GRAM
+# ------------------------------------------------------------
+
+skipgram_tsne_model = TSNE(
+    n_components=2,
+    perplexity=5,
+    random_state=42,
+    init="random",
+    learning_rate="auto"
+)
+
+skipgram_tsne = skipgram_tsne_model.fit_transform(
+    np.array(skipgram_vectors)
+)
+
+
+# ------------------------------------------------------------
+# 20. SKIP-GRAM t-SNE VISUALIZATION
+# ------------------------------------------------------------
+
+plt.figure(
+    figsize=(13, 9)
+)
+
+for i, word in enumerate(valid_words):
+
+    x = skipgram_tsne[i, 0]
+    y = skipgram_tsne[i, 1]
+
+    plt.scatter(
+        x,
+        y,
+        s=80
+    )
+
+    plt.annotate(
+        word,
+        (x, y),
+        xytext=(5, 5),
+        textcoords="offset points",
+        fontsize=10
+    )
+
+plt.title(
+    "Skip-Gram Word Embeddings - t-SNE",
+    fontsize=16
+)
+
+plt.xlabel(
+    "t-SNE Dimension 1"
+)
+
+plt.ylabel(
+    "t-SNE Dimension 2"
+)
+
+plt.grid(alpha=0.3)
+
+plt.tight_layout()
+
+plt.show()
+
+
+# ------------------------------------------------------------
+# 21. FINAL OUTPUT
+# ------------------------------------------------------------
+
+print("\n" + "=" * 70)
+print("ANALYSIS COMPLETED")
+print("=" * 70)
+
+print("""
+CBOW:
+    Context words -> Target word
+
+Skip-Gram:
+    Target word -> Context words
+
+The program performed:
+
+1. Word2Vec training using CBOW
+2. Word2Vec training using Skip-Gram
+3. Similar word identification
+4. Semantic similarity calculation
+5. Word embedding generation
+6. PCA dimensionality reduction
+7. t-SNE dimensionality reduction
+8. CBOW visualization
+9. Skip-Gram visualization
+""")
+
+
+
+
+
+
+
+6.
+
+from nltk import CFG
+from nltk.parse import ChartParser
+
+# ---------------------------------------------------------
+# 1. Define Grammar
+# ---------------------------------------------------------
+
+grammar = CFG.fromstring("""
+S -> NP VP
+NP -> PRON
+NP -> DET NOUN
+NP -> DET NOUN PP
+VP -> VERB NP
+VP -> VERB NP PP
+PP -> PREP NP
+PRON -> "I"
+DET -> "the"
+NOUN -> "man" | "telescope"
+VERB -> "saw"
+PREP -> "with"
+""")
+
+# ---------------------------------------------------------
+# 2. Create Parser
+# ---------------------------------------------------------
+
+parser = ChartParser(grammar)
+
+# ---------------------------------------------------------
+# 3. Input Sentence
+# ---------------------------------------------------------
+
+sentence = "I saw the man with the telescope".split()
+
+n = len(sentence)
+
+# ---------------------------------------------------------
+# 4. Create CKY Table
+# ---------------------------------------------------------
+
+table = [[set() for j in range(n)] for i in range(n)]
+
+# ---------------------------------------------------------
+# 5. Add POS categories to diagonal cells
+# ---------------------------------------------------------
+
+word_categories = {
+    "I": {"PRON"},
+    "saw": {"VERB"},
+    "the": {"DET"},
+    "man": {"NOUN"},
+    "with": {"PREP"},
+    "telescope": {"NOUN"}
+}
+
+for i in range(n):
+    table[i][i] = word_categories[sentence[i]].copy()
+
+# ---------------------------------------------------------
+# 6. Grammar rules used for CKY table
+# ---------------------------------------------------------
+
+binary_rules = {
+    ("PRON", "VP"): "S",
+
+    ("DET", "NOUN"): "NP",
+
+    ("DET", "X"): "NP",
+
+    ("VERB", "NP"): "VP",
+
+    ("VERB", "X"): "VP",
+
+    ("PREP", "NP"): "PP",
+
+    ("NOUN", "PP"): "X",
+
+    ("NP", "PP"): "X"
+}
+
+# ---------------------------------------------------------
+# 7. Fill CKY Table
+# ---------------------------------------------------------
+
+for length in range(2, n + 1):
+
+    for i in range(n - length + 1):
+
+        j = i + length - 1
+
+        for k in range(i, j):
+
+            left = table[i][k]
+            right = table[k + 1][j]
+
+            for B in left:
+                for C in right:
+
+                    if (B, C) in binary_rules:
+
+                        parent = binary_rules[(B, C)]
+
+                        table[i][j].add(parent)
+
+
+# ---------------------------------------------------------
+# 8. Print CKY Table
+# ---------------------------------------------------------
+
+print("\n")
+print("=" * 110)
+print("                         CKY PARSING TABLE")
+print("=" * 110)
+
+# Column headings
+print(f"{'':<12}", end="")
+
+for word in sentence:
+    print(f"{word:<14}", end="")
+
+print()
+
+print("-" * 110)
+
+# Table contents
+for i in range(n):
+
+    print(f"{sentence[i]:<12}", end="")
+
+    for j in range(n):
+
+        if i <= j:
+
+            if table[i][j]:
+                cell = ",".join(sorted(table[i][j]))
+            else:
+                cell = "-"
+
+            print(f"{cell:<14}", end="")
+
+        else:
+            print(f"{'':<14}", end="")
+
+    print()
+
+print("=" * 110)
+
+
+# ---------------------------------------------------------
+# 9. Display Final Cell
+# ---------------------------------------------------------
+
+print("\nFinal Cell [0,6]:")
+print(table[0][6])
+
+
+# ---------------------------------------------------------
+# 10. Generate Parse Trees using ChartParser
+# ---------------------------------------------------------
+
+trees = list(parser.parse(sentence))
+
+print("\n")
+print("=" * 110)
+print("                         PARSE TREES")
+print("=" * 110)
+
+print("\nNumber of parse trees:", len(trees))
+
+# ---------------------------------------------------------
+# 11. Display Parse Trees
+# ---------------------------------------------------------
+
+for i, tree in enumerate(trees, 1):
+
+    print("\n" + "-" * 110)
+    print("Parse Tree", i)
+    print("-" * 110)
+
+    tree.pretty_print()
+
+
+# ---------------------------------------------------------
+# 12. Explain Ambiguity
+# ---------------------------------------------------------
+
+print("\n")
+print("=" * 110)
+print("                         AMBIGUITY")
+print("=" * 110)
+
+print("""
+Parse Tree 1:
+"with the telescope" is attached to the Verb Phrase (VP).
+
+Meaning:
+I used the telescope to see the man.
+
+
+Parse Tree 2:
+"with the telescope" is attached to the Noun Phrase (NP).
+
+Meaning:
+The man had the telescope.
+""")
+
+
+
+
+
+
+
+
+
+
+7.
+
+import nltk
+import torch
+from nltk.translate.bleu_score import SmoothingFunction, sentence_bleu
+from transformers import MarianMTModel, MarianTokenizer
+
+# 1. Setup the Local Marian Model for English to Italian
+model_name = "Helsinki-NLP/opus-mt-en-it"
+
+print("Loading MarianMT model from Hugging Face...")
+tokenizer = MarianTokenizer.from_pretrained(model_name)
+model = MarianMTModel.from_pretrained(model_name)
+
+# 2. Input Method: Prompt user for text
+text_to_translate = input("\nEnter the English text to translate: ")
+
+try:
+    # Tokenize input text and generate translation
+    inputs = tokenizer(text_to_translate, return_tensors="pt", padding=True)
+
+    with torch.no_grad():
+        translated_tokens = model.generate(**inputs)
+
+    # Decode tokens back into Italian text
+    machine_translated_text = tokenizer.decode(translated_tokens[0], skip_special_tokens=True)
+
+    print(f"\n[English Input]: {text_to_translate}")
+    print(f"[Italian Translation]: {machine_translated_text}")
+
+    # 3. Quality Evaluation (BLEU Score)
+    print("\nTo calculate the BLEU score, enter a trusted human translation.")
+    reference_input = input("Enter human reference translation in Italian: ")
+
+    # Tokenize the strings into lists of words for NLTK precision parsing
+    # Lowercasing helps normalize matches for evaluation
+    reference_tokens = [reference_input.lower().split()]
+    candidate_tokens = machine_translated_text.lower().split()
+
+    # Use a smoothing function to handle short sentences without zeroing out scores
+    smoothie = SmoothingFunction().method1
+    bleu_score = sentence_bleu(reference_tokens, candidate_tokens, smoothing_function=smoothie)
+
+    # 4. Quality Metrics Display
+    print(f"\n--- Quality Metrics ---")
+    print(f"BLEU Score: {bleu_score:.4f}")
+
+    if bleu_score > 0.7:
+        print("Quality Assessment: Excellent match to human reference.")
+    elif bleu_score > 0.4:
+        print("Quality Assessment: Good/Understandable translation.")
+    else:
+        print("Quality Assessment: Low overlap. May need manual correction.")
+
+except Exception as e:
+    print(f"\nAn error occurred during runtime: {e}")
+
+
+
+
+
+
+8.
+# NEXT WORD PREDICTION USING LSTM
+
+# 1. Import Libraries
+import numpy as np
+import tensorflow as tf
+
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding, LSTM, Dense
+
+# 2. Training Dataset
+text = """
+I love machine learning
+I love deep learning
+I love natural language processing
+machine learning is interesting
+deep learning is powerful
+natural language processing is useful
+I am learning python
+python is easy to learn
+I love python programming
+machine learning is the future
+"""
+
+# 3. Tokenization
+tokenizer = Tokenizer()
+tokenizer.fit_on_texts([text])
+
+total_words = len(tokenizer.word_index) + 1
+
+print("Total Words:", total_words)
+print("Word Index:", tokenizer.word_index)
+
+# 4. Create Input Sequences
+input_sequences = []
+
+for line in text.strip().split('\n'):
+    tokens = tokenizer.texts_to_sequences([line])[0]
+
+    for i in range(1, len(tokens)):
+        sequence = tokens[:i+1]
+        input_sequences.append(sequence)
+
+# 5. Padding
+max_sequence_len = max(len(seq) for seq in input_sequences)
+
+input_sequences = pad_sequences(
+    input_sequences,
+    maxlen=max_sequence_len,
+    padding='pre'
+)
+
+# 6. Split Input and Output
+X = input_sequences[:, :-1]
+y = input_sequences[:, -1]
+
+# 7. Build LSTM Model
+model = Sequential()
+
+model.add(Embedding(total_words, 50))
+model.add(LSTM(100))
+model.add(Dense(total_words, activation='softmax'))
+
+# 8. Compile Model
+model.compile(
+    loss='sparse_categorical_crossentropy',
+    optimizer='adam',
+    metrics=['accuracy']
+)
+
+# 9. Train Model
+model.fit(X, y, epochs=200, verbose=1)
+
+print("\nModel Training Completed!")
+
+# 10. Next Word Prediction Function
+def predict_next_word(seed_text):
+
+    for i in range(3):
+
+        token_list = tokenizer.texts_to_sequences(
+            [seed_text]
+        )[0]
+
+        token_list = pad_sequences(
+            [token_list],
+            maxlen=max_sequence_len - 1,
+            padding='pre'
+        )
+
+        predicted = model.predict(token_list, verbose=0)
+
+        predicted_word_index = np.argmax(predicted, axis=1)[0]
+
+        output_word = ""
+
+        for word, index in tokenizer.word_index.items():
+            if index == predicted_word_index:
+                output_word = word
+                break
+
+        if output_word == "":
+            break
+
+        seed_text += " " + output_word
+
+    return seed_text
+
+# 11. User Input
+print("\nNEXT WORD PREDICTION")
+
+input_text = input("Enter a sentence: ")
+
+result = predict_next_word(input_text)
+
+print("\nPredicted Sentence:", result)
+
+
+
+
+
+
+9.
+# SPAM FILTERING SYSTEM USING NLP
+
+# 1. Import Libraries
+import pandas as pd
+import nltk
+import string
+
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, classification_report
+
+# 2. Download NLTK Data
+nltk.download('punkt')
+nltk.download('punkt_tab')
+nltk.download('stopwords')
+
+# 3. Create Dataset
+data = {
+    'message': [
+        'Win a free lottery prize now',
+        'Congratulations you won a gift',
+        'Claim your free mobile recharge',
+        'Meeting is scheduled for tomorrow',
+        'Please call me when you are free',
+        'How are you doing today',
+        'You won 10000 dollars click here',
+        'Your exam results are published',
+        'Get free offers now',
+        'Let us meet tomorrow',
+        'Free entry in a prize draw',
+        'Are you coming to college today',
+        'Congratulations claim your cash prize',
+        'Please submit your assignment',
+        'Click here to win a free ticket',
+        'I will call you later',
+        'Get your free gift card now',
+        'Can we meet after class',
+        'You have won a lottery',
+        'Your class starts at ten'
+    ],
+
+    'label': [
+        'spam', 'spam', 'spam', 'ham', 'ham',
+        'ham', 'spam', 'ham', 'spam', 'ham',
+        'spam', 'ham', 'spam', 'ham', 'spam',
+        'ham', 'spam', 'ham', 'spam', 'ham'
+    ]
+}
+
+df = pd.DataFrame(data)
+
+print("DATASET:")
+print(df)
+
+# 4. Text Preprocessing
+stop_words = set(stopwords.words('english'))
+
+def preprocess(text):
+    text = text.lower()
+    words = word_tokenize(text)
+
+    words = [
+        word for word in words
+        if word.isalpha() and word not in stop_words
+    ]
+
+    return " ".join(words)
+
+df['clean_message'] = df['message'].apply(preprocess)
+
+print("\nPREPROCESSED DATA:")
+print(df[['message', 'clean_message']])
+
+# 5. TF-IDF Vectorization
+tfidf = TfidfVectorizer()
+
+X = tfidf.fit_transform(df['clean_message'])
+y = df['label']
+
+print("\nTF-IDF FEATURES:")
+print(tfidf.get_feature_names_out())
+print(X.toarray())
+
+# 6. Split Dataset
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+# 7. Train Naive Bayes Model
+model = MultinomialNB()
+
+model.fit(X_train, y_train)
+
+print("\nModel Training Completed!")
+
+# 8. Test Model
+y_pred = model.predict(X_test)
+
+accuracy = accuracy_score(y_test, y_pred)
+
+print("\nACCURACY:", accuracy * 100, "%")
+
+print("\nCLASSIFICATION REPORT:")
+print(classification_report(y_test, y_pred, zero_division=0))
+
+# 9. Predict New Messages
+print("\nSPAM MESSAGE DETECTION")
+
+messages = [
+    "Congratulations you won a free prize",
+    "Please attend the college meeting tomorrow",
+    "Click here to claim your lottery money",
+    "I will meet you after class"
+]
+
+for message in messages:
+
+    cleaned = preprocess(message)
+
+    vector = tfidf.transform([cleaned])
+
+    prediction = model.predict(vector)
+
+    print("\nMessage:", message)
+    print("Prediction:", prediction[0].upper())
+
+# 10. User Input Prediction
+print("\nENTER YOUR OWN MESSAGE")
+
+user_message = input("Enter a message: ")
+
+cleaned = preprocess(user_message)
+
+vector = tfidf.transform([cleaned])
+
+result = model.predict(vector)
+
+print("\nInput Message:", user_message)
+
+if result[0] == 'spam':
+    print("Result: SPAM MESSAGE")
+else:
+    print("Result: HAM (NORMAL MESSAGE)")
+
+
+
+
+
+
+
+10.
+
+"""
+Experiment 10 - Retrieval-based chatbot using NLP techniques
+Pipeline: tokenize -> stop-word removal -> Porter stemming -> TF-IDF
+          -> cosine similarity -> intent -> response (+ name memory)
+Run:  python3 nlp_chatbot.py   (evaluation, then live chat: type your message, 'quit' to exit)
+"""
+import math, random, re, sys
+from collections import Counter
+from nltk.stem import PorterStemmer          # algorithm only, no downloads
+
+random.seed(0)
+STEM = PorterStemmer()
+STOP = {"a", "an", "the", "is", "are", "am", "to", "of", "in", "on", "at", "do",
+        "does", "you", "your", "me", "my", "i", "it", "can", "please", "there",
+        "for", "and", "be", "have", "will", "what", "how", "when", "where",
+        "which", "tell", "about", "much", "so", "as", "with", "this", "that"}
+THRESHOLD = 0.20      # below this similarity -> fallback reply
+
+INTENTS = {   # intent: (training patterns, responses)
+    "greeting": (["hello", "hi there", "hey", "good morning", "greetings"],
+                 ["Hello! How can I help you today?"]),
+    "goodbye": (["bye", "goodbye", "see you later", "see you soon", "good night"],
+                ["Goodbye! Have a great day."]),
+    "thanks": (["thanks", "thank you", "thanks a lot", "appreciate your help"],
+               ["You're welcome!"]),
+    "identity": (["who are you", "what is your name", "what are you called",
+                  "introduce yourself"],
+                 ["I am CampusBot, a chatbot built with NLP techniques."]),
+    "admission": (["how do i apply for admission", "admission process",
+                   "how to join the college", "application form for admission"],
+                  ["Admissions open in June. Apply online on the college portal."]),
+    "fees": (["what is the fee structure", "how much are the tuition fees",
+              "how to pay fees", "semester fee amount"],
+             ["Fees are paid semester-wise on the college portal."]),
+    "timetable": (["exam timetable", "when are the exams", "exam schedule",
+                   "class timetable"],
+                  ["Timetables are published on the notice board and portal."]),
+    "library": (["library timings", "when does the library open",
+                 "how to borrow books", "library opening hours"],
+                ["The library is open 8 AM to 8 PM on weekdays."]),
+    "hostel": (["hostel facilities", "how to get a hostel room",
+                "hostel accommodation", "room allotment"],
+               ["Apply for a hostel room at the hostel office after admission."]),
+    "contact": (["phone number of the college", "contact details", "email address",
+                 "office contact number"],
+                ["Office: 044-0000000 | office@college.example (9 AM - 5 PM)."]),
+}
+FALLBACK = "Sorry, I did not understand. Ask about admission, fees, exams, library, hostel or contact."
+
+def preprocess(text):
+    """lowercase -> tokenize -> remove stop words -> stem"""
+    return [STEM.stem(t) for t in re.findall(r"[a-z0-9]+", text.lower()) if t not in STOP]
+
+class TfidfIntentModel:
+    def __init__(self, intents):
+        self.docs = [(preprocess(p), lab) for lab, (ps, _) in intents.items() for p in ps]
+        n = len(self.docs)
+        df = Counter(w for d, _ in self.docs for w in set(d))
+        self.idf = {w: math.log((1 + n) / (1 + c)) + 1 for w, c in df.items()}
+        self.vecs = [(self.vec(d), lab) for d, lab in self.docs]
+
+    def vec(self, tokens):
+        v = {w: c * self.idf[w] for w, c in Counter(tokens).items() if w in self.idf}
+        norm = math.sqrt(sum(x * x for x in v.values()))
+        return {w: x / norm for w, x in v.items()} if norm else {}
+
+    def classify(self, text):
+        q, best, score = self.vec(preprocess(text)), None, 0.0
+        for v, lab in self.vecs:
+            s = sum(x * v.get(w, 0.0) for w, x in q.items())     # cosine similarity
+            if s > score:
+                best, score = lab, s
+        return (best, score) if score >= THRESHOLD else ("fallback", score)
+
+class ChatBot:
+    HOW_RE = re.compile(r"\bhow (?:are|r) (?:you|u)(?: doing)?\b|\bhow is it going\b", re.I)
+    STATUS = "I'm doing great, thanks for asking!"
+
+    def __init__(self):
+        self.model, self.name = TfidfIntentModel(INTENTS), None
+
+    def reply(self, text):
+        m = re.search(r"\b(?:my name is|call me)\s+([A-Za-z]+)", text, re.I)
+        if m:
+            self.name = m.group(1).capitalize()
+            return f"Nice to meet you, {self.name}! How can I help?", "name_entity", 1.0
+        asked = bool(self.HOW_RE.search(text))            # small-talk: "how are you"
+        label, s = self.model.classify(self.HOW_RE.sub(" ", text))
+        hello = f"Hello again, {self.name}!" if self.name else "Hello!"
+        if label == "greeting":
+            return (f"{hello} {self.STATUS} How can I help you today?" if asked
+                    else f"{hello} How can I help you today?"), label, s
+        if asked and label == "fallback":
+            return f"{self.STATUS} How can I help you?", "how_are_you", 1.0
+        if label == "fallback":
+            return FALLBACK, label, s
+        answer = random.choice(INTENTS[label][1])
+        return (f"{self.STATUS} {answer}" if asked else answer), label, s
+
+TEST_SET = [("hey there", "greeting"), ("see you tomorrow", "goodbye"),
+    ("thank you so much", "thanks"), ("what should I call you", "identity"),
+    ("how can I apply to the college", "admission"),
+    ("how much do I need to pay as fees", "fees"), ("when is the exam", "timetable"),
+    ("what time does the library close", "library"),
+    ("can I get a room in the hostel", "hostel"),
+    ("what is the office phone number", "contact"),
+    ("is the canteen open on sunday", "fallback"), ("tell me a joke", "fallback")]
+
+def banner(t):
+    print("=" * 72, t, "=" * 72, sep="\n")
+
+def main():
+    bot = ChatBot()
+    banner("STEP 1 - Evaluation on unseen test sentences")
+    ok = 0
+    for q, gold in TEST_SET:
+        pred, s = bot.model.classify(q)
+        ok += pred == gold
+        print(f'  {"OK  " if pred == gold else "MISS"} "{q}"  gold={gold}  pred={pred}  sim={s:.3f}')
+    print(f"\n  Accuracy = {ok}/{len(TEST_SET)} = {ok / len(TEST_SET):.1%}")
+
+    banner("STEP 2 - Live chat (type a message, 'quit' to exit)")
+    while True:
+        try:
+            u = input("You: ").strip()
+        except EOFError:
+            break
+        if not sys.stdin.isatty():
+            print(u)                       # echo piped input so the session is readable
+        if u.lower() in {"quit", "exit", ""}:
+            print("CampusBot: Goodbye!\n")
+            break
+        r, intent, _ = bot.reply(u)
+        print(f"CampusBot: {r}\n")
+        if intent == "goodbye":
+            break
+
+    banner("STEP 3 - Analysis of the chatbot")
+    print('  1) STOP WORDS. If "what" is kept as a token, "what is the weather today"')
+    print('     matches the identity intent (similarity 1.0). Removing question words')
+    print('     as stop words makes it score 0.000, so the bot falls back correctly.')
+    print('  2) UNSEEN TOPICS. "is the canteen open on sunday" is wrongly mapped to')
+    print('     library because "open" is the only known word. TF-IDF cannot tell that')
+    print('     "canteen" is a new topic; a canteen intent or semantic model is needed.')
+    print('  3) BAG OF WORDS. Word order and negation are ignored ("fees of hostel"')
+    print('     equals "hostel fees"; "do not want hostel" still matches hostel).')
+    print('  4) MEMORY. The regex entity extractor stores the name "Priya" and reuses')
+    print('     it in the later greeting: a minimal form of dialogue state.')
+    print('  5) SMALL TALK. "how are you" becomes empty after stop-word removal, so a')
+    print('     regex handles it, and "hello how are you" gets one combined reply.')
+
+if __name__ == "__main__":
+    main()
