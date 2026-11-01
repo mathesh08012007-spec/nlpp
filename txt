@@ -57,6 +57,97 @@ print("\nText preprocessing completed successfully!")
 
 
 
+2.
+
+
+import math
+from collections import Counter
+
+# Step 1: Documents
+documents = {
+    "D1": "the cat sat on the mat",
+    "D2": "the dog sat on the log",
+    "D3": "the cat chased the dog",
+    "D4": "cats and dogs are pets"
+}
+
+N = len(documents)
+
+# Step 2: Word frequency
+word_counts = {}
+for doc, text in documents.items():
+    word_counts[doc] = Counter(text.split())
+
+# Step 3: Vocabulary
+terms = sorted(set(
+    word for text in documents.values()
+    for word in text.split()
+))
+
+# Step 4: Calculate TF
+tf = {}
+
+for term in terms:
+    tf[term] = {}
+    for doc in documents:
+        total_words = sum(word_counts[doc].values())
+        count = word_counts[doc][term]
+        tf[term][doc] = count / total_words
+
+# Step 5: Calculate IDF
+df = {}
+idf = {}
+
+for term in terms:
+    df[term] = sum(
+        1 for doc in documents
+        if word_counts[doc][term] > 0
+    )
+    idf[term] = math.log10(N / df[term])
+
+# Step 6: Calculate TF-IDF
+tfidf = {}
+
+for term in terms:
+    tfidf[term] = {}
+    for doc in documents:
+        tfidf[term][doc] = tf[term][doc] * idf[term]
+
+
+# Step 7: Display TF Table
+print("\n========== TERM FREQUENCY (TF) ==========")
+print(f"{'Term':<12}", end="")
+for doc in documents:
+    print(f"{doc:<12}", end="")
+print()
+
+for term in terms:
+    print(f"{term:<12}", end="")
+    for doc in documents:
+        print(f"{tf[term][doc]:<12.3f}", end="")
+    print()
+
+
+# Step 8: Display IDF Table
+print("\n========== INVERSE DOCUMENT FREQUENCY (IDF) ==========")
+print(f"{'Term':<12}{'DF':<12}{'IDF':<12}")
+
+for term in terms:
+    print(f"{term:<12}{df[term]:<12}{idf[term]:<12.3f}")
+
+
+# Step 9: Display TF-IDF Table
+print("\n========== TF-IDF SCORES ==========")
+print(f"{'Term':<12}", end="")
+for doc in documents:
+    print(f"{doc:<12}", end="")
+print()
+
+for term in terms:
+    print(f"{term:<12}", end="")
+    for doc in documents:
+        print(f"{tfidf[term][doc]:<12.3f}", end="")
+    print()
 
 
 
