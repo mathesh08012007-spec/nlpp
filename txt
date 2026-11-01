@@ -242,546 +242,214 @@ print("Perplexity =", round(perplexity, 3))
 
 
 
-
-
-
-4.
-import numpy as np
-from gensim.models import Word2Vec
-from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
-import matplotlib.pyplot as plt
-
-
-# ------------------------------------------------------------
-# 2. TEXT CORPUS
-# ------------------------------------------------------------
-
-corpus = [
-    ["the", "cat", "drinks", "milk"],
-    ["the", "dog", "drinks", "milk"],
-    ["the", "cat", "eats", "fish"],
-    ["the", "dog", "eats", "meat"],
-
-    ["the", "king", "rules", "the", "kingdom"],
-    ["the", "queen", "rules", "the", "kingdom"],
-    ["the", "king", "is", "a", "man"],
-    ["the", "queen", "is", "a", "woman"],
-
-    ["the", "car", "drives", "on", "the", "road"],
-    ["the", "bus", "drives", "on", "the", "road"],
-
-    ["the", "apple", "is", "a", "fruit"],
-    ["the", "orange", "is", "a", "fruit"],
-    ["the", "apple", "is", "red"],
-    ["the", "orange", "is", "orange"],
-
-    ["the", "doctor", "works", "in", "the", "hospital"],
-    ["the", "nurse", "works", "in", "the", "hospital"],
-
-    ["the", "teacher", "works", "in", "the", "school"],
-    ["the", "student", "studies", "in", "the", "school"],
-
-    ["the", "boy", "plays", "football"],
-    ["the", "girl", "plays", "football"],
-    ["the", "boy", "plays", "cricket"],
-    ["the", "girl", "plays", "cricket"]
-]
-
-
-# ------------------------------------------------------------
-# 3. TRAIN CBOW MODEL
-# ------------------------------------------------------------
-
-cbow_model = Word2Vec(
-    sentences=corpus,
-    vector_size=100,
-    window=2,
-    min_count=1,
-    workers=1,
-    sg=0,
-    seed=42,
-    epochs=100
-)
-
-# sg=0 means CBOW
-
-
-# ------------------------------------------------------------
-# 4. TRAIN SKIP-GRAM MODEL
-# ------------------------------------------------------------
-
-skipgram_model = Word2Vec(
-    sentences=corpus,
-    vector_size=100,
-    window=2,
-    min_count=1,
-    workers=1,
-    sg=1,
-    seed=42,
-    epochs=100
-)
-
-# sg=1 means Skip-gram
-
-
-# ------------------------------------------------------------
-# 5. DISPLAY MODEL INFORMATION
-# ------------------------------------------------------------
-
-print("=" * 70)
-print("CBOW AND SKIP-GRAM WORD2VEC")
-print("=" * 70)
-
-print("\nVocabulary size:",
-      len(cbow_model.wv.key_to_index))
-
-print("\nVocabulary:")
-print(list(cbow_model.wv.key_to_index.keys()))
-
-
-# ------------------------------------------------------------
-# 6. FIND SIMILAR WORDS - CBOW
-# ------------------------------------------------------------
-
-word = "cat"
-
-print("\n" + "=" * 70)
-print("CBOW - SIMILAR WORDS")
-print("=" * 70)
-
-print(f"\nWords similar to '{word}':")
-
-cbow_similar = cbow_model.wv.most_similar(
-    word,
-    topn=5
-)
-
-for similar_word, score in cbow_similar:
-    print(
-        f"{similar_word:15s} "
-        f"Similarity = {score:.4f}"
-    )
-
-
-# ------------------------------------------------------------
-# 7. FIND SIMILAR WORDS - SKIP-GRAM
-# ------------------------------------------------------------
-
-print("\n" + "=" * 70)
-print("SKIP-GRAM - SIMILAR WORDS")
-print("=" * 70)
-
-print(f"\nWords similar to '{word}':")
-
-skipgram_similar = skipgram_model.wv.most_similar(
-    word,
-    topn=5
-)
-
-for similar_word, score in skipgram_similar:
-    print(
-        f"{similar_word:15s} "
-        f"Similarity = {score:.4f}"
-    )
-
-
-# ------------------------------------------------------------
-# 8. SEMANTIC SIMILARITY BETWEEN WORDS
-# ------------------------------------------------------------
-
-print("\n" + "=" * 70)
-print("SEMANTIC WORD RELATIONSHIPS")
-print("=" * 70)
-
-word_pairs = [
-    ("cat", "dog"),
-    ("king", "queen"),
-    ("car", "bus"),
-    ("apple", "orange"),
-    ("doctor", "nurse"),
-    ("teacher", "student"),
-    ("boy", "girl")
-]
-
-for word1, word2 in word_pairs:
-
-    cbow_score = cbow_model.wv.similarity(
-        word1,
-        word2
-    )
-
-    skipgram_score = skipgram_model.wv.similarity(
-        word1,
-        word2
-    )
-
-    print(f"\n{word1} <-> {word2}")
-
-    print(
-        f"CBOW      : {cbow_score:.4f}"
-    )
-
-    print(
-        f"Skip-gram : {skipgram_score:.4f}"
-    )
-
-
-# ------------------------------------------------------------
-# 9. DISPLAY A WORD VECTOR
-# ------------------------------------------------------------
-
-print("\n" + "=" * 70)
-print("WORD EMBEDDING")
-print("=" * 70)
-
-word = "cat"
-
-print(f"\n100-dimensional vector for '{word}':")
-
-print(cbow_model.wv[word])
-
-
-# ------------------------------------------------------------
-# 10. WORDS FOR VISUALIZATION
-# ------------------------------------------------------------
-
-words = [
-    "cat",
-    "dog",
-    "milk",
-    "fish",
-    "meat",
-    "king",
-    "queen",
-    "man",
-    "woman",
-    "car",
-    "bus",
-    "road",
-    "apple",
-    "orange",
-    "fruit",
-    "doctor",
-    "nurse",
-    "teacher",
-    "student",
-    "school",
-    "hospital",
-    "boy",
-    "girl",
-    "football",
-    "cricket"
-]
-
-
-# ------------------------------------------------------------
-# 11. GET CBOW VECTORS
-# ------------------------------------------------------------
-
-cbow_vectors = []
-valid_words = []
-
-for word in words:
-
-    if word in cbow_model.wv:
-
-        cbow_vectors.append(
-            cbow_model.wv[word]
-        )
-
-        valid_words.append(word)
-
-
-# ------------------------------------------------------------
-# 12. PCA FOR CBOW
-# ------------------------------------------------------------
-
-pca = PCA(
-    n_components=2
-)
-
-cbow_pca = pca.fit_transform(
-    cbow_vectors
-)
-
-
-# ------------------------------------------------------------
-# 13. CBOW PCA VISUALIZATION
-# ------------------------------------------------------------
-
-plt.figure(
-    figsize=(13, 9)
-)
-
-for i, word in enumerate(valid_words):
-
-    x = cbow_pca[i, 0]
-    y = cbow_pca[i, 1]
-
-    plt.scatter(
-        x,
-        y,
-        s=80
-    )
-
-    plt.annotate(
-        word,
-        (x, y),
-        xytext=(5, 5),
-        textcoords="offset points",
-        fontsize=10
-    )
-
-plt.title(
-    "CBOW Word Embeddings - PCA",
-    fontsize=16
-)
-
-plt.xlabel(
-    "Principal Component 1"
-)
-
-plt.ylabel(
-    "Principal Component 2"
-)
-
-plt.grid(alpha=0.3)
-
-plt.tight_layout()
-
-plt.show()
-
-
-# ------------------------------------------------------------
-# 14. t-SNE FOR CBOW
-# ------------------------------------------------------------
-
-tsne = TSNE(
-    n_components=2,
-    perplexity=5,
-    random_state=42,
-    init="random",
-    learning_rate="auto"
-)
-
-cbow_tsne = tsne.fit_transform(
-    np.array(cbow_vectors)
-)
-
-
-# ------------------------------------------------------------
-# 15. CBOW t-SNE VISUALIZATION
-# ------------------------------------------------------------
-
-plt.figure(
-    figsize=(13, 9)
-)
-
-for i, word in enumerate(valid_words):
-
-    x = cbow_tsne[i, 0]
-    y = cbow_tsne[i, 1]
-
-    plt.scatter(
-        x,
-        y,
-        s=80
-    )
-
-    plt.annotate(
-        word,
-        (x, y),
-        xytext=(5, 5),
-        textcoords="offset points",
-        fontsize=10
-    )
-
-plt.title(
-    "CBOW Word Embeddings - t-SNE",
-    fontsize=16
-)
-
-plt.xlabel(
-    "t-SNE Dimension 1"
-)
-
-plt.ylabel(
-    "t-SNE Dimension 2"
-)
-
-plt.grid(alpha=0.3)
-
-plt.tight_layout()
-
-plt.show()
-
-
-# ------------------------------------------------------------
-# 16. SKIP-GRAM VECTORS
-# ------------------------------------------------------------
-
-skipgram_vectors = []
-
-for word in valid_words:
-
-    skipgram_vectors.append(
-        skipgram_model.wv[word]
-    )
-
-
-# ------------------------------------------------------------
-# 17. PCA FOR SKIP-GRAM
-# ------------------------------------------------------------
-
-skipgram_pca = PCA(
-    n_components=2
-)
-
-skipgram_pca_vectors = skipgram_pca.fit_transform(
-    skipgram_vectors
-)
-
-
-# ------------------------------------------------------------
-# 18. SKIP-GRAM PCA VISUALIZATION
-# ------------------------------------------------------------
-
-plt.figure(
-    figsize=(13, 9)
-)
-
-for i, word in enumerate(valid_words):
-
-    x = skipgram_pca_vectors[i, 0]
-    y = skipgram_pca_vectors[i, 1]
-
-    plt.scatter(
-        x,
-        y,
-        s=80
-    )
-
-    plt.annotate(
-        word,
-        (x, y),
-        xytext=(5, 5),
-        textcoords="offset points",
-        fontsize=10
-    )
-
-plt.title(
-    "Skip-Gram Word Embeddings - PCA",
-    fontsize=16
-)
-
-plt.xlabel(
-    "Principal Component 1"
-)
-
-plt.ylabel(
-    "Principal Component 2"
-)
-
-plt.grid(alpha=0.3)
-
-plt.tight_layout()
-
-plt.show()
-
-
-# ------------------------------------------------------------
-# 19. t-SNE FOR SKIP-GRAM
-# ------------------------------------------------------------
-
-skipgram_tsne_model = TSNE(
-    n_components=2,
-    perplexity=5,
-    random_state=42,
-    init="random",
-    learning_rate="auto"
-)
-
-skipgram_tsne = skipgram_tsne_model.fit_transform(
-    np.array(skipgram_vectors)
-)
-
-
-# ------------------------------------------------------------
-# 20. SKIP-GRAM t-SNE VISUALIZATION
-# ------------------------------------------------------------
-
-plt.figure(
-    figsize=(13, 9)
-)
-
-for i, word in enumerate(valid_words):
-
-    x = skipgram_tsne[i, 0]
-    y = skipgram_tsne[i, 1]
-
-    plt.scatter(
-        x,
-        y,
-        s=80
-    )
-
-    plt.annotate(
-        word,
-        (x, y),
-        xytext=(5, 5),
-        textcoords="offset points",
-        fontsize=10
-    )
-
-plt.title(
-    "Skip-Gram Word Embeddings - t-SNE",
-    fontsize=16
-)
-
-plt.xlabel(
-    "t-SNE Dimension 1"
-)
-
-plt.ylabel(
-    "t-SNE Dimension 2"
-)
-
-plt.grid(alpha=0.3)
-
-plt.tight_layout()
-
-plt.show()
-
-
-# ------------------------------------------------------------
-# 21. FINAL OUTPUT
-# ------------------------------------------------------------
-
-print("\n" + "=" * 70)
-print("ANALYSIS COMPLETED")
-print("=" * 70)
-
-print("""
-CBOW:
-    Context words -> Target word
-
-Skip-Gram:
-    Target word -> Context words
-
-The program performed:
-
-1. Word2Vec training using CBOW
-2. Word2Vec training using Skip-Gram
-3. Similar word identification
-4. Semantic similarity calculation
-5. Word embedding generation
-6. PCA dimensionality reduction
-7. t-SNE dimensionality reduction
-8. CBOW visualization
-9. Skip-Gram visualization
+4. cky
+
+
+from nltk import CFG
+from nltk.parse import ChartParser
+
+# ---------------------------------------------------------
+# 1. Define Grammar
+# ---------------------------------------------------------
+
+grammar = CFG.fromstring("""
+S -> NP VP
+NP -> PRON
+NP -> DET NOUN
+NP -> DET NOUN PP
+VP -> VERB NP
+VP -> VERB NP PP
+PP -> PREP NP
+PRON -> "I"
+DET -> "the"
+NOUN -> "man" | "telescope"
+VERB -> "saw"
+PREP -> "with"
 """)
 
+# ---------------------------------------------------------
+# 2. Create Parser
+# ---------------------------------------------------------
+
+parser = ChartParser(grammar)
+
+# ---------------------------------------------------------
+# 3. Input Sentence
+# ---------------------------------------------------------
+
+sentence = "I saw the man with the telescope".split()
+
+n = len(sentence)
+
+# ---------------------------------------------------------
+# 4. Create CKY Table
+# ---------------------------------------------------------
+
+table = [[set() for j in range(n)] for i in range(n)]
+
+# ---------------------------------------------------------
+# 5. Add POS categories to diagonal cells
+# ---------------------------------------------------------
+
+word_categories = {
+    "I": {"PRON"},
+    "saw": {"VERB"},
+    "the": {"DET"},
+    "man": {"NOUN"},
+    "with": {"PREP"},
+    "telescope": {"NOUN"}
+}
+
+for i in range(n):
+    table[i][i] = word_categories[sentence[i]].copy()
+
+# ---------------------------------------------------------
+# 6. Grammar rules used for CKY table
+# ---------------------------------------------------------
+
+binary_rules = {
+    ("PRON", "VP"): "S",
+
+    ("DET", "NOUN"): "NP",
+
+    ("DET", "X"): "NP",
+
+    ("VERB", "NP"): "VP",
+
+    ("VERB", "X"): "VP",
+
+    ("PREP", "NP"): "PP",
+
+    ("NOUN", "PP"): "X",
+
+    ("NP", "PP"): "X"
+}
+
+# ---------------------------------------------------------
+# 7. Fill CKY Table
+# ---------------------------------------------------------
+
+for length in range(2, n + 1):
+
+    for i in range(n - length + 1):
+
+        j = i + length - 1
+
+        for k in range(i, j):
+
+            left = table[i][k]
+            right = table[k + 1][j]
+
+            for B in left:
+                for C in right:
+
+                    if (B, C) in binary_rules:
+
+                        parent = binary_rules[(B, C)]
+
+                        table[i][j].add(parent)
+
+
+# ---------------------------------------------------------
+# 8. Print CKY Table
+# ---------------------------------------------------------
+
+print("\n")
+print("=" * 110)
+print("                         CKY PARSING TABLE")
+print("=" * 110)
+
+# Column headings
+print(f"{'':<12}", end="")
+
+for word in sentence:
+    print(f"{word:<14}", end="")
+
+print()
+
+print("-" * 110)
+
+# Table contents
+for i in range(n):
+
+    print(f"{sentence[i]:<12}", end="")
+
+    for j in range(n):
+
+        if i <= j:
+
+            if table[i][j]:
+                cell = ",".join(sorted(table[i][j]))
+            else:
+                cell = "-"
+
+            print(f"{cell:<14}", end="")
+
+        else:
+            print(f"{'':<14}", end="")
+
+    print()
+
+print("=" * 110)
+
+
+# ---------------------------------------------------------
+# 9. Display Final Cell
+# ---------------------------------------------------------
+
+print("\nFinal Cell [0,6]:")
+print(table[0][6])
+
+
+# ---------------------------------------------------------
+# 10. Generate Parse Trees using ChartParser
+# ---------------------------------------------------------
+
+trees = list(parser.parse(sentence))
+
+print("\n")
+print("=" * 110)
+print("                         PARSE TREES")
+print("=" * 110)
+
+print("\nNumber of parse trees:", len(trees))
+
+# ---------------------------------------------------------
+# 11. Display Parse Trees
+# ---------------------------------------------------------
+
+for i, tree in enumerate(trees, 1):
+
+    print("\n" + "-" * 110)
+    print("Parse Tree", i)
+    print("-" * 110)
+
+    tree.pretty_print()
+
+
+# ---------------------------------------------------------
+# 12. Explain Ambiguity
+# ---------------------------------------------------------
+
+print("\n")
+print("=" * 110)
+print("                         AMBIGUITY")
+print("=" * 110)
+
+print("""
+Parse Tree 1:
+"with the telescope" is attached to the Verb Phrase (VP).
+
+Meaning:
+I used the telescope to see the man.
+
+
+Parse Tree 2:
+"with the telescope" is attached to the Noun Phrase (NP).
+
+Meaning:
+The man had the telescope.
+""")
 
 
 
@@ -1325,218 +993,106 @@ The program performed:
 """)
 
 
+6. SMT
 
+from nltk.translate import AlignedSent
+from nltk.translate.ibm_model import IBMModel1
+from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 
+# Step 1: Training data
+data = [
+    ("hello", "bonjour"),
+    ("how are you", "comment allez vous"),
+    ("i am fine", "je vais bien"),
+    ("good morning", "bonjour"),
+    ("thank you", "merci"),
+    ("i love you", "je vous aime"),
+    ("good night", "bonne nuit"),
+    ("i am happy", "je suis heureux")
+]
 
+# Step 2: Prepare parallel sentences
+parallel_data = []
 
+for english, french in data:
+    aligned = AlignedSent(
+        words=french.split(),
+        mots=english.split()
+    )
+    parallel_data.append(aligned)
 
-6.
+# Step 3: Train IBM Model 1
+model = IBMModel1(parallel_data, 100)
 
-from nltk import CFG
-from nltk.parse import ChartParser
+# Step 4: Translation function
+def translate(sentence):
+    words = sentence.lower().split()
+    result = []
 
-# ---------------------------------------------------------
-# 1. Define Grammar
-# ---------------------------------------------------------
+    for word in words:
+        best_word = None
+        best_probability = 0
 
-grammar = CFG.fromstring("""
-S -> NP VP
-NP -> PRON
-NP -> DET NOUN
-NP -> DET NOUN PP
-VP -> VERB NP
-VP -> VERB NP PP
-PP -> PREP NP
-PRON -> "I"
-DET -> "the"
-NOUN -> "man" | "telescope"
-VERB -> "saw"
-PREP -> "with"
-""")
+        for french_word in model.translation_table:
+            probability = model.translation_table[french_word].get(word, 0)
 
-# ---------------------------------------------------------
-# 2. Create Parser
-# ---------------------------------------------------------
+            if probability > best_probability:
+                best_probability = probability
+                best_word = french_word
 
-parser = ChartParser(grammar)
-
-# ---------------------------------------------------------
-# 3. Input Sentence
-# ---------------------------------------------------------
-
-sentence = "I saw the man with the telescope".split()
-
-n = len(sentence)
-
-# ---------------------------------------------------------
-# 4. Create CKY Table
-# ---------------------------------------------------------
-
-table = [[set() for j in range(n)] for i in range(n)]
-
-# ---------------------------------------------------------
-# 5. Add POS categories to diagonal cells
-# ---------------------------------------------------------
-
-word_categories = {
-    "I": {"PRON"},
-    "saw": {"VERB"},
-    "the": {"DET"},
-    "man": {"NOUN"},
-    "with": {"PREP"},
-    "telescope": {"NOUN"}
-}
-
-for i in range(n):
-    table[i][i] = word_categories[sentence[i]].copy()
-
-# ---------------------------------------------------------
-# 6. Grammar rules used for CKY table
-# ---------------------------------------------------------
-
-binary_rules = {
-    ("PRON", "VP"): "S",
-
-    ("DET", "NOUN"): "NP",
-
-    ("DET", "X"): "NP",
-
-    ("VERB", "NP"): "VP",
-
-    ("VERB", "X"): "VP",
-
-    ("PREP", "NP"): "PP",
-
-    ("NOUN", "PP"): "X",
-
-    ("NP", "PP"): "X"
-}
-
-# ---------------------------------------------------------
-# 7. Fill CKY Table
-# ---------------------------------------------------------
-
-for length in range(2, n + 1):
-
-    for i in range(n - length + 1):
-
-        j = i + length - 1
-
-        for k in range(i, j):
-
-            left = table[i][k]
-            right = table[k + 1][j]
-
-            for B in left:
-                for C in right:
-
-                    if (B, C) in binary_rules:
-
-                        parent = binary_rules[(B, C)]
-
-                        table[i][j].add(parent)
-
-
-# ---------------------------------------------------------
-# 8. Print CKY Table
-# ---------------------------------------------------------
-
-print("\n")
-print("=" * 110)
-print("                         CKY PARSING TABLE")
-print("=" * 110)
-
-# Column headings
-print(f"{'':<12}", end="")
-
-for word in sentence:
-    print(f"{word:<14}", end="")
-
-print()
-
-print("-" * 110)
-
-# Table contents
-for i in range(n):
-
-    print(f"{sentence[i]:<12}", end="")
-
-    for j in range(n):
-
-        if i <= j:
-
-            if table[i][j]:
-                cell = ",".join(sorted(table[i][j]))
-            else:
-                cell = "-"
-
-            print(f"{cell:<14}", end="")
-
+        if best_word:
+            result.append(best_word)
         else:
-            print(f"{'':<14}", end="")
+            result.append("[?]")
 
-    print()
+    return " ".join(result)
 
-print("=" * 110)
+# Step 5: Get input
+sentence = input("Enter English sentence: ")
 
+# Step 6: Translate
+translation = translate(sentence)
 
-# ---------------------------------------------------------
-# 9. Display Final Cell
-# ---------------------------------------------------------
+# Step 7: Get reference translation
+reference = input("Enter Reference French Translation: ")
 
-print("\nFinal Cell [0,6]:")
-print(table[0][6])
+# Step 8: Calculate BLEU score
+reference_words = reference.lower().split()
+candidate_words = translation.lower().split()
 
+bleu = sentence_bleu(
+    [reference_words],
+    candidate_words,
+    smoothing_function=SmoothingFunction().method1
+)
 
-# ---------------------------------------------------------
-# 10. Generate Parse Trees using ChartParser
-# ---------------------------------------------------------
+# Step 9: Output
+print("\n==============================================")
+print("             TRANSLATION RESULT")
+print("==============================================")
 
-trees = list(parser.parse(sentence))
+print("English              :", sentence)
+print("French Translation   :", translation)
+print("Reference Translation:", reference)
+print("BLEU Score           :", round(bleu, 3))
+print("BLEU Score %         :", round(bleu * 100, 2), "%")
 
-print("\n")
-print("=" * 110)
-print("                         PARSE TREES")
-print("=" * 110)
+print("\n==============================================")
+print("              OUTPUT ANALYSIS")
+print("==============================================")
 
-print("\nNumber of parse trees:", len(trees))
+print("Total Words          :", len(sentence.split()))
+print("Translated Words     :", len(candidate_words))
+print("BLEU Score           :", round(bleu, 3))
 
-# ---------------------------------------------------------
-# 11. Display Parse Trees
-# ---------------------------------------------------------
+if bleu >= 0.5:
+    print("Translation Quality  : Good")
+elif bleu >= 0.2:
+    print("Translation Quality  : Medium")
+else:
+    print("Translation Quality  : Low")
 
-for i, tree in enumerate(trees, 1):
-
-    print("\n" + "-" * 110)
-    print("Parse Tree", i)
-    print("-" * 110)
-
-    tree.pretty_print()
-
-
-# ---------------------------------------------------------
-# 12. Explain Ambiguity
-# ---------------------------------------------------------
-
-print("\n")
-print("=" * 110)
-print("                         AMBIGUITY")
-print("=" * 110)
-
-print("""
-Parse Tree 1:
-"with the telescope" is attached to the Verb Phrase (VP).
-
-Meaning:
-I used the telescope to see the man.
-
-
-Parse Tree 2:
-"with the telescope" is attached to the Noun Phrase (NP).
-
-Meaning:
-The man had the telescope.
-""")
+print("==============================================")
 
 
 
@@ -1547,7 +1103,8 @@ The man had the telescope.
 
 
 
-7.
+
+7. NMT /NLP
 
 import nltk
 import torch
